@@ -38,3 +38,50 @@ You can install them via terminal:
 ```bash
 sudo apt install nodejs npm git
 ```
+
+2. **Install dependencies**
+
+```bash
+npm install
+```
+
+3. **Run session script**
+
+```bash
+node session.js
+```
+
+4. **Scan the QR code** using WhatsApp on your phone.  
+This will create a session file (e.g. `auth_info.json`).
+
+---
+
+## â˜ï¸ DEPLOY ON PLATFORM
+
+### ðŸ”· Render
+
+1. Create a new Web Service at [Render.com](https://render.com/)
+2. Connect your GitHub repo: `https://github.com/SHUKRANI-TECH/SHUKRANI`
+3. Set the **start command**:
+```bash
+node index.js
+```
+4. Upload your session file as a secret file (`auth_info.json`) or via environment variable if supported.
+
+---
+
+### ðŸŸ£ Heroku
+
+1. Go to [Heroku.com](https://heroku.com/)
+2. Create a new app and connect your GitHub repository
+3. Go to **Settings > Buildpacks** and add:
+    - `heroku/nodejs`
+4. Add a `Procfile` in your repo with this line:
+```
+worker: node index.js
+```
+5. Upload your session file (`auth_info.json`) in the root of the project before deploying.
+
+---
+
+âœ… You're ready to run SHUKRANI on the cloud!
