@@ -4,7 +4,7 @@
   "description": "A WhatsApp bot powered by Baileys",
   "main": "index.js",
   "scripts": {
-    "start": "node shukrani.js"
+    "start": "node index.js"
   },
   "author": "SHUKRANI Team",
   "license": "MIT",
