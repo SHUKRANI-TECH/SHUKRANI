@@ -19,6 +19,9 @@ for (const file of commandFiles) {
   }
 }
 
+console.log('✅ Loaded Commands:');
+commands.forEach(cmd => console.log('—', cmd.name));
+
 // Export main handler
 module.exports = async (sock, sender, text, msg) => {
   const rawText = text.trim();
@@ -41,6 +44,43 @@ module.exports = async (sock, sender, text, msg) => {
     return;
   }
 
+  // Handle menu command
+  if (rawText.toLowerCase() === 'menu') {
+    const grouped = {
+      GROUP: [],
+      SYSTEM: [],
+      OTHER: [],
+      DOWNLOAD: [],
+    };
+
+    for (const cmd of commands) {
+      const lower = cmd.name.toLowerCase();
+      if (['tagall', 'kick', 'link', 'promoteall', 'shukranikillgroup'].includes(lower)) {
+        grouped.GROUP.push(lower);
+      } else if (['alwaysonline', 'mode', 'autoread', 'setbotname', 'settimezone'].some(k => lower.includes(k))) {
+        grouped.SYSTEM.push(lower);
+      } else if (['ping', 'pair', 'runtime', 'repo', 'botstatus'].includes(lower)) {
+        grouped.OTHER.push(lower);
+      } else if (['ytmp3', 'ytmp4', 'tiktok', 'mediafire', 'apk', 'play'].some(k => lower.includes(k))) {
+        grouped.DOWNLOAD.push(lower);
+      }
+    }
+
+    const format = (title, arr) => arr.length ? `📂 *${title}*\n${arr.sort().map(c => `- ${c}`).join('\n')}\n` : '';
+    const output = [
+      format('GROUP', grouped.GROUP),
+      format('SYSTEM', grouped.SYSTEM),
+      format('OTHER', grouped.OTHER),
+      format('DOWNLOAD', grouped.DOWNLOAD),
+    ].filter(Boolean).join('\n');
+
+    await sock.sendMessage(groupId, { react: { text: '🙋', key: msg.key } });
+    await sock.sendMessage(groupId, {
+      text: `🎯 *SHUKRANI BOT MENU*\n\n${output || 'No commands found.'}`
+    });
+    return;
+  }
+
   // Run any onMessage hooks (like antilink, autoreact, etc.)
   for (const cmd of commands) {
     if (typeof cmd.onMessage === 'function') {
@@ -54,7 +94,6 @@ module.exports = async (sock, sender, text, msg) => {
 
   // Compare against command names
   const compareText = rawText.toLowerCase();
-
   for (const cmd of commands) {
     const match = config.prefix
       ? compareText.startsWith(cmd.name) || compareText.startsWith('.' + cmd.name) || compareText.startsWith('/' + cmd.name)
