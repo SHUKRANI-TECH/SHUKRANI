@@ -1,38 +1,57 @@
-const fs = require('fs');
-const path = require('path');
+// SHUKRANI BOT - index.js (command handler) const fs = require('fs'); const path = require('path'); const configPath = path.join(__dirname, 'configStore.json');
 
-// Load all command modules from the current folder
-const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('.js') && file !== 'index.js');
-const commands = [];
+// Load config or initialize let config = {}; if (fs.existsSync(configPath)) config = JSON.parse(fs.readFileSync(configPath)); const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-for (const file of commandFiles) {
-    const command = require(path.join(__dirname, file));
-    if (command.name && typeof command.execute === 'function') {
-        commands.push(command);
+// Load all command modules from the current folder const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('.js') && file !== 'index.js'); const commands = [];
+
+for (const file of commandFiles) { const command = require(path.join(__dirname, file)); if (command.name && typeof command.execute === 'function') { commands.push(command); } }
+
+// Export main handler module.exports = async (sock, sender, text, msg) => { const rawText = text.trim(); const groupId = msg.key.remoteJid;
+
+// React to prifex command itself
+if (rawText.toLowerCase().startsWith('prifex')) {
+    const value = rawText.split(' ')[1];
+    if (value === 'yes') {
+        config.prefix = true;
+        saveConfig();
+        await sock.sendMessage(groupId, { text: '✅ Prefix mode is ON (commands require prefix).' });
+    } else if (value === 'no') {
+        config.prefix = false;
+        saveConfig();
+        await sock.sendMessage(groupId, { text: '❌ Prefix mode is OFF (commands do not require prefix).' });
+    } else {
+        await sock.sendMessage(groupId, { text: 'Usage: prifex yes | prifex no' });
+    }
+    return;
+}
+
+// Run any onMessage hooks
+for (const cmd of commands) {
+    if (typeof cmd.onMessage === 'function') {
+        try {
+            await cmd.onMessage(sock, msg);
+        } catch (e) {
+            console.error(`❌ Error in onMessage for ${cmd.name}:`, e);
+        }
     }
 }
 
-// Export main handler
-module.exports = async (sock, sender, text, msg) => {
-    // Run any onMessage hooks (e.g., background checks like antilink)
-    for (const cmd of commands) {
-        if (typeof cmd.onMessage === 'function') {
-            try {
-                await cmd.onMessage(sock, msg);
-            } catch (e) {
-                console.error(`❌ Error in onMessage for ${cmd.name}:`, e);
-            }
-        }
-    }
+const compareText = rawText.toLowerCase();
 
-    // Command execution logic (only if message is from user and matches a command)
-    for (const cmd of commands) {
-        if (text.toLowerCase().startsWith(cmd.name)) {
-            try {
-                await cmd.execute(sock, msg, text);
-            } catch (e) {
-                console.error(`❌ Error in command ${cmd.name}:`, e);
-            }
+for (const cmd of commands) {
+    const match = config.prefix
+        ? compareText.startsWith(cmd.name) || compareText.startsWith('.' + cmd.name) || compareText.startsWith('/' + cmd.name)
+        : compareText.startsWith(cmd.name);
+
+    if (match) {
+        try {
+            await cmd.execute(sock, msg, text);
+        } catch (e) {
+            console.error(`❌ Error in command ${cmd.name}:`, e);
         }
     }
+}
+
 };
+
+                
