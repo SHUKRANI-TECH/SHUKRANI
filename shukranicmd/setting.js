@@ -26,7 +26,6 @@ module.exports = { name: 'settings', description: 'Bot configuration commands',
 
 execute: async (sock, msg, text) => { const command = text.trim().toLowerCase(); const groupId = msg.key.remoteJid; if (!groupId.endsWith('@g.us')) return;
 
-// Toggle settings
 const toggles = {
   'alwaysonline': '🖕',
   'antibug': '🫵',
@@ -87,6 +86,50 @@ if (command.startsWith('setwarn')) {
   saveSettings();
   await sock.sendMessage(groupId, { react: { text: '🙅', key: msg.key } });
   await sock.sendMessage(groupId, { text: `✅ Warning limit set to ${num}` });
+  return;
+}
+
+if (command === 'getsettings') {
+  await sock.sendMessage(groupId, { react: { text: '🫡', key: msg.key } });
+  const formatted = Object.entries(settings).map(([k, v]) => `• *${k}* : ${v}`).join('\n');
+  await sock.sendMessage(groupId, { text: `⚙️ *Current Settings:*\n\n${formatted}` });
+  return;
+}
+
+if (command === 'resetsettings') {
+  await sock.sendMessage(groupId, { react: { text: '🔁', key: msg.key } });
+  settings = {
+    prefix: false,
+    prefixSymbol: ".",
+    alwaysonline: "yes",
+    antibug: "no",
+    antical: "no",
+    antidelete: "no",
+    antideletestatus: "no",
+    antiedit: "no",
+    autoreactstatus: "yes",
+    autoviewstatus: "yes",
+    autoreact: "no",
+    autoread: "no",
+    autotype: "no",
+    autorecord: "no",
+    autorecordtyping: "no",
+    autoblock: "no",
+    chatbot: "no",
+    delanticallmsg: "no",
+    testanticallmsg: "no",
+    mode: "private",
+    setstatusemoji: "🤖",
+    setbotname: "SHUKRANI",
+    setwatermark: "SHUKRANI • BOT",
+    setstickerauthor: "SHUKRANI TEAM",
+    setstickerpackname: "Shukrani Stickers",
+    settimezone: "Africa/Dar_es_Salaam",
+    setcontextlink: "https://wa.me/255773350309",
+    setmenuimage: "https://files.catbox.moe/cqt22l.jpg"
+  };
+  saveSettings();
+  await sock.sendMessage(groupId, { text: `♻️ *SHUKRANI settings have been reset to default.*` });
   return;
 }
 
