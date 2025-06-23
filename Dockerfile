@@ -1,27 +1,25 @@
-# Use Node.js official image
-FROM node:20
+FROM node:lts
 
-# Install media processing tools
-RUN apt-get update && apt-get install -y \
-  ffmpeg \
-  imagemagick \
-  webp \
-  && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg imagemagick webp && apt-get clean
 
 # Set working directory
 WORKDIR /app
 
-# Copy dependencies
+# Copy package files
 COPY package*.json ./
 
-# Install Node.js packages and log errors if any
-RUN mkdir -p /app/logs && npm install --legacy-peer-deps 2> /app/logs/npm-error.log || exit 1
+# Install dependencies
+RUN npm install && npm cache clean --force
 
-# Copy rest of the bot files
+# Copy application code
 COPY . .
 
-# Optional expose port
+# Expose port
 EXPOSE 3000
 
-# Start the bot
-CMD ["node", "shukrani.js"]
+# Set environment
+ENV NODE_ENV production
+
+# Run command
+CMD ["npm", "run", "start"]
