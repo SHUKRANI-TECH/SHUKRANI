@@ -1,16 +1,17 @@
 {
-  "name": "shukrani",
+  "name": "shukrani-bot",
   "version": "1.0.0",
-  "description": "SHUKRANI WhatsApp bot",
+  "description": "SHUKRANI WhatsApp Bot",
   "main": "shukrani.js",
   "scripts": {
     "start": "node shukrani.js"
   },
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "dependencies": {
-    "@adiwajshing/baileys": "^6.4.0",
+    "@adiwajshing/baileys": "^6.3.0",
+    "@hapi/boom": "^10.0.1",
     "pino": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
