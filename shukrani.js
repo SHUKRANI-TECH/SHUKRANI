@@ -1,51 +1,55 @@
-const { default: makeWASocket, useSingleFileAuthState, DisconnectReason, makeInMemoryStore } = require('@adiwajshing/baileys');
-const { Boom } = require('@hapi/boom');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@adiwajshing/baileys');
 const pino = require('pino');
-const fs = require('fs');
-const figlet = require('figlet');
-const chalk = require('chalk');
-const path = require('path');
-const handleCommand = require('./index');
-
-const { state, saveState } = useSingleFileAuthState('./auth_info_multi.json');
-const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
-store.readFromFile('./baileys_store.json');
-setInterval(() => store.writeToFile('./baileys_store.json'), 10_000);
-
-console.clear();
-console.log(chalk.cyan(figlet.textSync('SHUKRANI BOT', { horizontalLayout: 'default' })));
+const qrcode = require('qrcode');
+const { Boom } = require('@hapi/boom');
 
 async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState('./auth_info');
+  const { version } = await fetchLatestBaileysVersion();
+
   const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
     logger: pino({ level: 'silent' }),
-    browser: ['Shukrani Bot', 'Chrome', '1.0.0']
+    printQRInTerminal: false,
+    auth: state,
+    version,
+    browser: ['SHUKRANI-BOT', 'Chrome', '1.0']
   });
 
-  store.bind(sock.ev);
-  sock.ev.on('creds.update', saveState);
+  sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr, pairingCode } = update;
+
+    if (qr) {
+      qrcode.toDataURL(qr, (err, url) => {
+        if (err) return console.error('QR Error:', err);
+        console.log('🔗 QR Code URL (scan via browser or view image):', url);
+      });
+    }
+
+    if (pairingCode) {
+      console.log('🔗 Pairing Code Link:', `https://wa.me/pair/${pairingCode}`);
+    }
+
+    if (connection === 'open') {
+      console.log('✅ SHUKRANI BOT connected!');
+    }
+
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect.error = Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log(chalk.red(`❌ Connection closed due to ${lastDisconnect.error}. Reconnecting: ${shouldReconnect}`));
-      if (shouldReconnect) {
-        startBot();
-      }
-    } else if (connection === 'open') {
-      console.log(chalk.green('✅ SHUKRANI BOT is now connected!'));
+      console.log('❌ Closed:', lastDisconnect.error, 'Reconnect?', shouldReconnect);
+      if (shouldReconnect) await startBot();
     }
   });
 
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+  sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
-
-    await handleCommand(sock, msg);
+    const from = msg.key.remoteJid;
+    const body = msg.message.conversation || msg.message.extendedTextMessage?.text;
+    console.log('📥', from, body);
+    await sock.sendMessage(from, { text: `Umesema: ${body}` });
   });
 }
 
-startBot();
+startBot().catch(console.error);
