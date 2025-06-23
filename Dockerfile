@@ -1,34 +1,30 @@
 # Use official Node.js LTS image
 FROM node:lts
 
-# Install system dependencies for media processing
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     imagemagick \
     webp \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create logs folder for error logging
-RUN mkdir -p /app/logs
-
-# Set the application working directory
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and lock file
-COPY ./package.json ./package-lock.json* ./
+# Copy dependency files
+COPY package.json package-lock.json* ./
 
-# Install Node.js dependencies and log errors
-RUN npm install --legacy-peer-deps 2> /app/logs/npm-error.log || exit 1
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
-# Copy all project files
+# Copy rest of project
 COPY . .
 
-# Expose port (optional, if using socket or HTTP)
+# Optional: expose a port
 EXPOSE 3000
 
-# Set environment variable
+# Environment
 ENV NODE_ENV=production
 
-# Start the bot using the main file
+# Start the bot
 CMD ["node", "shukrani.js"]
