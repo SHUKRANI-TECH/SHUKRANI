@@ -6,55 +6,48 @@ const fs = require('fs')
 const P = require('pino')
 const path = require('path')
 
-// Import command handler
+// Import command handler (from shukranicmd/index.js)
 const handleCommand = require('./shukranicmd')
 
-// Path to store session
+// Session storage
 const SESSION_FILE = './session/shukrani_session.json'
-
-// Ensure session folder exists
 if (!fs.existsSync('./session')) fs.mkdirSync('./session')
-
-// Load session
 const { state, saveState } = useSingleFileAuthState(SESSION_FILE)
 
-// Function to start bot
+// Start bot
 async function startBot() {
     const sock = makeWASocket({
         logger: P({ level: 'silent' }),
-        printQRInTerminal: true, // QR support
+        printQRInTerminal: true,
         auth: state
     })
 
-    // Save session on every update
     sock.ev.on('creds.update', saveState)
 
-    // Try pairing code (only if not already registered)
+    // Pairing code (for first-time login)
     if (!state.creds.registered) {
         try {
-            const phoneNumber = '2557XXXXXXX' // << REPLACE this with your number without "+"
+            const phoneNumber = '2557XXXXXXX' // replace with your number (no +)
             const code = await sock.requestPairingCode(phoneNumber)
-            console.log(`🔑 Pairing code: ${code}\nEnter this in your WhatsApp > Linked Devices`)
+            console.log(`🔑 Pairing code: ${code}\nOpen WhatsApp > Linked Devices`)
         } catch (err) {
-            console.log('⚠️ Pairing code failed. Falling back to QR scan...')
+            console.log('⚠️ Pairing failed. Scan QR instead...')
         }
     }
 
-    // Connection handler
+    // Connection status
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error = Boom)?.output?.statusCode !== DisconnectReason.loggedOut
-            console.log('[!] Connection closed.', shouldReconnect ? 'Reconnecting...' : 'Logged out.')
-            if (shouldReconnect) {
-                setTimeout(startBot, 5000)
-            }
+            console.log('[!] Disconnected.', shouldReconnect ? 'Reconnecting...' : 'Logged out.')
+            if (shouldReconnect) setTimeout(startBot, 5000)
         } else if (connection === 'open') {
-            console.log('✅ SHUKRANI BOT is connected and ready.')
+            console.log('✅ SHUKRANI BOT is connected!')
         }
     })
 
-    // Message handler
+    // Handle incoming messages
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return
         const msg = messages[0]
@@ -62,11 +55,10 @@ async function startBot() {
 
         const sender = msg.key.remoteJid
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text
-
         if (!text) return
 
         console.log(`📩 ${sender}: ${text}`)
-        await handleCommand(sock, sender, text)
+        await handleCommand(sock, sender, text, msg)
     })
 }
 
