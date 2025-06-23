@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: shukrani-bot
+    env: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: node shukrani.js
+    rootDir: . # kama shukrani.js iko kwenye root
+    autoDeploy: true
+    envVars:
+      - key: BOT_NAME
+        value: SHUKRANI
+      - key: OWNER_JID
+        value: 255773350309@s.whatsapp.net
+      - key: SESSION_PATH
+        value: ./session/shukrani_session.json
+      - key: PORT
+        value: 3000
+      - key: MODE
+        value: public
+      - key: IS_OWNER_ONLY
+        value: yes
+      - key: ALWAYSONLINE
+        value: yes
+      - key: ANTIBUG
+        value: yes
+      - key: TIMEZONE
+        value: Africa/Nairobi
+      - key: LOGO_URL
+        value: https://files.catbox.moe/bvy2u1.jpg
