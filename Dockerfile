@@ -1,25 +1,24 @@
-FROM node:lts
+FROM node:lts-buster
 
-# Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg imagemagick webp && apt-get clean
+RUN apt-get update && \
+  apt-get install -y \
+  ffmpeg \
+  imagemagick \
+  webp && \
+  apt-get upgrade -y && \
+  npm i pm2 -g && \
+  rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+RUN git clone https://github.com/SHUKRANI-TECH/SHUKRANI.git  /root/ToshTech
+WORKDIR /root/toshtech/
 
-# Copy package files
-COPY package*.json ./
 
-# Install dependencies
-RUN npm install && npm cache clean --force
+COPY package.json .
+RUN npm install pm2 -g
+RUN npm install --legacy-peer-deps
 
-# Copy application code
 COPY . .
 
-# Expose port
-EXPOSE 3000
+EXPOSE 5000
 
-# Set environment
-ENV NODE_ENV production
-
-# Run command
-CMD ["npm", "run", "start"]
+CMD ["npm", "run" , "ibrahim.js"]
