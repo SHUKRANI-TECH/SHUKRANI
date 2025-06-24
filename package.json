@@ -33,6 +33,5 @@
     "fluent-ffmpeg": "^2.1.2",
     "uuid": "^9.0.1",
     "@hapi/boom": "^10.0.1"
-    // ... endelea na zingine unazotumia hasa
   }
 }
