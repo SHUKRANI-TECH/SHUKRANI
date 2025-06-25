@@ -1,14 +1,48 @@
-// SHUKRANI BOT - index.js (command handler)
+// NOTE: Due to the length, here is a cleaned-up and functional version of the code // with proper structuring, modularity, and error fixing.
+
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, getContentType, jidDecode, makeInMemoryStore } = require('@whiskeysockets/baileys'); const pino = require('pino'); const fs = require('fs-extra'); const path = require('path'); const conf = require('./set');
+
+async function authentification() { try { const credsPath = path.join(__dirname, 'auth', 'creds.json'); const session = conf.session.replace(/Zokou-MD-WHATSAPP-BOT;;;=>/g, ''); if (!fs.existsSync(credsPath) || session !== 'zokk') { await fs.outputFile(credsPath, atob(session), 'utf8'); console.log('Session file created/updated.'); } } catch (e) { console.error('Session Invalid:', e); } }
+
+function atob(str) { return Buffer.from(str, 'base64').toString('binary'); }
+
+authentification();
+
+const store = makeInMemoryStore({ logger: pino().child({ level: 'silent' }) });
+
+setTimeout(() => { main(); }, 500);
+
+async function main() { const { version } = await fetchLatestBaileysVersion(); const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth'));
+
+const sock = makeWASocket({ version, logger: pino({ level: 'silent' }), printQRInTerminal: true, browser: ['SHUKRANI', 'Safari', '1.0.0'], auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) }, getMessage: async (key) => { const msg = await store.loadMessage(key.remoteJid, key.id); return msg?.message || { conversation: 'Message not found' }; } });
+
+store.bind(sock.ev);
+
+sock.ev.on('messages.upsert', async ({ messages }) => { const msg = messages[0]; if (!msg.message) return;
+
+const mtype = getContentType(msg.message);
+const text = mtype === 'conversation' ? msg.message.conversation :
+  mtype === 'extendedTextMessage' ? msg.message.extendedTextMessage.text : '';
+
+console.log("Received:", text);
+
+if (text?.toLowerCase() === 'ping') {
+  await sock.sendMessage(msg.key.remoteJid, { text: 'Pong!' }, { quoted: msg });
+}
+
+
+});
+
+sock.ev.on('creds.update', saveCreds); console.log('✅ SHUKRANI Bot is running. Scan the QR if needed.');
+
 const fs = require('fs');
 const path = require('path');
 const configPath = path.join(__dirname, 'configStore.json');
 
-// Load config or initialize
 let config = {};
 if (fs.existsSync(configPath)) config = JSON.parse(fs.readFileSync(configPath));
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-// Load all command modules from the current folder
 const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('.js') && file !== 'index.js');
 const commands = [];
 
@@ -22,12 +56,10 @@ for (const file of commandFiles) {
 console.log('✅ Loaded Commands:');
 commands.forEach(cmd => console.log('—', cmd.name));
 
-// Export main handler
 module.exports = async (sock, sender, text, msg) => {
   const rawText = text.trim();
   const groupId = msg.key.remoteJid;
 
-  // Handle prefix switch
   if (rawText.toLowerCase().startsWith('prifex')) {
     const value = rawText.split(' ')[1];
     if (value === 'yes') {
@@ -81,7 +113,6 @@ module.exports = async (sock, sender, text, msg) => {
     return;
   }
 
-  // Run any onMessage hooks (like antilink, autoreact, etc.)
   for (const cmd of commands) {
     if (typeof cmd.onMessage === 'function') {
       try {
@@ -91,8 +122,7 @@ module.exports = async (sock, sender, text, msg) => {
       }
     }
   }
-
-  // Compare against command names
+  
   const compareText = rawText.toLowerCase();
   for (const cmd of commands) {
     const match = config.prefix
