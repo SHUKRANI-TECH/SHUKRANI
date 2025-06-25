@@ -8,9 +8,10 @@ RUN apt-get update && \
   apt-get upgrade -y && \
   npm i pm2 -g && \
   rm -rf /var/lib/apt/lists/*
+  
+RUN  git clone https://github.com/SHUKRANI-TECH/SHUKRANI.git  /root/index.js
+WORKDIR /root/index.js/
 
-RUN git clone https://github.com/SHUKRANI-TECH/SHUKRANI.git  /root/ToshTech
-WORKDIR /root/toshtech/
 
 
 COPY package.json .
@@ -21,4 +22,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["npm", "run" , "shukrani.js"]
+CMD ["node", "shukrani.js"]
