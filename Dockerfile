@@ -9,11 +9,6 @@ RUN apt-get update && \
   npm i pm2 -g && \
   rm -rf /var/lib/apt/lists/*
   
-RUN  git clone https://github.com/SHUKRANI-TECH/SHUKRANI.git  /root/index.js
-WORKDIR /root/index.js/
-
-
-
 COPY package.json .
 RUN npm install pm2 -g
 RUN npm install --legacy-peer-deps
